@@ -1,0 +1,1 @@
+command! FormatPandocMDTable call pdmdtableformatter#FormatThisPandocMDTable()
