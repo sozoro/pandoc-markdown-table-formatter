@@ -1,3 +1,7 @@
+scriptencoding utf-8
+let s:save_cpo = &cpo
+set cpo&vim
+
 function! s:zip2ListsWith(f, l1, l2) abort
   if len(a:l1) <= len(a:l2)
     let l:minSize = len(a:l1)
@@ -172,3 +176,6 @@ function! pdmdtableformatter#FormatThisPandocMDGTable() abort
     endif
   endif
 endfunction
+
+let &cpo = s:save_cpo
+unlet s:save_cpo
