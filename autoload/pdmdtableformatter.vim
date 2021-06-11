@@ -18,10 +18,15 @@ function! s:zip2ListsWith(f, l1, l2) abort
   return l:longer
 endfunction
 
+function! s:extend(l1, l2, e) abort
+  return a:l1 + repeat([a:e], len(a:l2) - len(a:l1))
+endfunction
+
 function! s:maxWordLengths(tableHeadLineNum) abort
   let l:lastLineNum      = line("$")
   let l:i                = a:tableHeadLineNum
   let l:mlens            = []
+  let l:algns            = []
 
   while l:i <= lastLineNum
     let l:l = getline(l:i)
@@ -30,6 +35,7 @@ function! s:maxWordLengths(tableHeadLineNum) abort
     elseif l:l[0] == "|"
       let l:elems = split(l:l, "|")
       let l:llens = map(l:elems, 'strwidth(substitute(v:val, ''\s'', "", "g"))')
+      let l:mlens = s:extend(l:mlens, l:llens, 0)
       let l:mlens = s:zip2ListsWith({x, y -> max([x, y])}, l:mlens, l:llens)
     else
       break
@@ -48,7 +54,7 @@ endfunction
 
 function! s:format(l, sep, mlens, f) abort
   let l:strs = split(a:l, a:sep)
-  let l:strs = l:strs + repeat([""], len(a:mlens) - len(l:strs))
+  let l:strs = s:extend(l:strs, a:mlens, "")
   let l:strs = s:zip2ListsWith(a:f, a:mlens, l:strs)
   return a:sep . join(l:strs, a:sep) . a:sep
 endfunction
