@@ -128,7 +128,7 @@ function s:setFormat(lnum, line, sep, wlals, f) abort
   endif
 endfunction
 
-function! s:formatPandocMDTable(tableHeadLineNum, wlals) abort
+function! s:formatPandocMDGTable(tableHeadLineNum, wlals) abort
   let l:lastLineNum      = line("$")
   let l:changed          = 0
   let l:i                = a:tableHeadLineNum
@@ -152,7 +152,7 @@ function! s:formatPandocMDTable(tableHeadLineNum, wlals) abort
   return { "tableLastLineNum" : l:i - 1, "changed" : l:changed }
 endfunction
 
-function! pdmdtableformatter#FormatThisPandocMDTable() abort
+function! pdmdtableformatter#FormatThisPandocMDGTable() abort
   let l:tableHeadLineNum = line(".")
   while l:tableHeadLineNum >= 0 && getline(l:tableHeadLineNum)[0] =~ '\(+\||\)'
     let l:tableHeadLineNum = l:tableHeadLineNum - 1
@@ -163,7 +163,7 @@ function! pdmdtableformatter#FormatThisPandocMDTable() abort
   else
     let l:tableHeadLineNum = l:tableHeadLineNum + 1
     let l:wlals            = s:wordLengthsAndAligns(l:tableHeadLineNum)
-    let l:res              = s:formatPandocMDTable(l:tableHeadLineNum, l:wlals)
+    let l:res              = s:formatPandocMDGTable(l:tableHeadLineNum, l:wlals)
     let l:lines            = l:tableHeadLineNum . "-" . l:res["tableLastLineNum"]
     if l:res["changed"]
       echo "formatted (table lines: " . l:lines . ")"
