@@ -166,9 +166,9 @@ function! pdmdtableformatter#FormatThisPandocMDTable() abort
     let l:res              = s:formatPandocMDTable(l:tableHeadLineNum, l:wlals)
     let l:lines            = l:tableHeadLineNum . "-" . l:res["tableLastLineNum"]
     if l:res["changed"]
-      echo "grid table formatted (lines: " . l:lines . ")"
+      echo "formatted (table lines: " . l:lines . ")"
     else
-      echo "nothing changed (lines: " . l:lines . ")"
+      echo "nothing changed (table lines: " . l:lines . ")"
     endif
   endif
 endfunction
