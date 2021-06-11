@@ -19,6 +19,19 @@ function! s:extend(l1, l2, e) abort
   return a:l1 + repeat([a:e], len(a:l2) - len(a:l1))
 endfunction
 
+function! s:zipAlgn(algn, bar)
+  let l:algn = a:algn
+  if l:algn == 0
+    if a:bar[0] == ":"
+      let l:algn = or(l:algn, 1)
+    endif
+    if a:bar[len(a:bar) - 1] == ":"
+      let l:algn = or(l:algn, 2)
+    endif
+  endif
+  return l:algn
+endfunction
+
 function! s:maxWordLengths(tableHeadLineNum) abort
   let l:lastLineNum      = line("$")
   let l:i                = a:tableHeadLineNum
@@ -29,6 +42,9 @@ function! s:maxWordLengths(tableHeadLineNum) abort
     let l:l = getline(l:i)
 
     if     l:l[0] == "+"
+      let l:bars  = split(l:l, "+")
+      let l:algns = s:extend(l:algns, l:bars, 0)
+      let l:algns = s:zip2ListsWith(function("s:zipAlgn"), l:algns, l:bars)
     elseif l:l[0] == "|"
       let l:elems = split(l:l, "|")
       let l:llens = map(l:elems, 'strwidth(substitute(v:val, ''\s'', "", "g"))')
@@ -41,6 +57,7 @@ function! s:maxWordLengths(tableHeadLineNum) abort
     let l:i = l:i + 1
   endwhile
 
+  echo l:algn
   return l:mlens
 endfunction
 
