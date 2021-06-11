@@ -6,7 +6,7 @@ This vim plugin supports pandoc grid tables only.
 
 ## Commands
 
-* :FormatPandocMDTable
+* :FormatPandocMDGTable
 
 ## Example
 
