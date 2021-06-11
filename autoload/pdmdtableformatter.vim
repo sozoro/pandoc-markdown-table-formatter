@@ -1,4 +1,4 @@
-function! s:zip2Lists(f, l1, l2) abort
+function! s:zip2ListsWith(f, l1, l2) abort
   if len(a:l1) <= len(a:l2)
     let l:shorter = a:l1
     let l:longer  = deepcopy(a:l2)
@@ -30,7 +30,7 @@ function! s:maxWordLengths(tableHeadLineNum) abort
     elseif l:l[0] == "|"
       let l:elems = split(l:l, "|")
       let l:llens = map(l:elems, 'strwidth(substitute(v:val, ''\s'', "", "g"))')
-      let l:mlens = s:zip2Lists({x, y -> max([x, y])}, l:mlens, l:llens)
+      let l:mlens = s:zip2ListsWith({x, y -> max([x, y])}, l:mlens, l:llens)
     else
       break
     endif
@@ -49,7 +49,7 @@ endfunction
 function! s:format(l, sep, mlens, f) abort
   let l:strs = split(a:l, a:sep)
   let l:strs = l:strs + repeat([""], len(a:mlens) - len(l:strs))
-  let l:strs = s:zip2Lists(a:f, a:mlens, l:strs)
+  let l:strs = s:zip2ListsWith(a:f, a:mlens, l:strs)
   return a:sep . join(l:strs, a:sep) . a:sep
 endfunction
 
