@@ -23,14 +23,7 @@ function! s:extend(l1, l2, e) abort
     let l:i = l:i + 1
   endwhile
   return l:r
-  " return a:l1 + repeat([a:e], len(a:l2) - len(a:l1))
 endfunction
-
-function! s:zip2ExtListsWith(f, l1, l2, e) abort
-  return s:zip2ListsWith(a:f, s:extend(a:l1, a:l2, a:e), a:l2)
-endfunction
-
-let s:wlal0 = { "wlen" : 0, "algn" : 0 }
 
 function! s:zipAlgn(bar, algn) abort
   let l:algn = a:algn
@@ -45,29 +38,42 @@ function! s:zipAlgn(bar, algn) abort
   return l:algn
 endfunction
 
+function! s:delSpacesBA(str) abort
+  return substitute(a:str, '^\s*\(.\{-}\)\s*$', '\1', "")
+endfunction
+
+function! s:zipWLen(str, wlen) abort
+  return max([a:wlen, strwidth(s:delSpacesBA(a:str))])
+endfunction
+
 function! s:mapDict(dict, key, f) abort
   let l:dict = a:dict
   let l:dict[a:key] = a:f(l:dict[a:key])
   return l:dict
 endfunction
 
-function! s:maxWordLengths(tableHeadLineNum) abort
+let s:wlal0 = { "wlen" : 0, "algn" : 0 }
+
+function! s:updateWLALs(wlals, line, key, sep, fname)
+  let l:strs  = split(a:line, a:sep)
+  let l:strs  = s:extend(l:strs, a:wlals, {_ -> ""           })
+  let l:wlals = s:extend(a:wlals, l:strs, {_ -> copy(s:wlal0)})
+  let s:zippr = {wlal, str -> s:mapDict(wlal, a:key, function(a:fname,[str]))}
+  return s:zip2ListsWith(s:zippr, l:wlals, l:strs)
+endfunction
+
+function! s:wordLengthsAndAligns(tableHeadLineNum) abort
   let l:lastLineNum      = line("$")
+  let l:wlals            = []
   let l:i                = a:tableHeadLineNum
-  let l:mlens            = []
-  let l:algns            = []
 
   while l:i <= lastLineNum
     let l:l = getline(l:i)
 
     if     l:l[0] == "+"
-      let l:bars  = split(l:l, "+")
-      let s:zippr = {wlal, bar -> s:mapDict(wlal, "algn", function("s:zipAlgn",[bar]))}
-      let l:algns = s:zip2ExtListsWith(s:zippr, l:algns, l:bars, {_ -> copy(s:wlal0)})
+      let l:wlals = s:updateWLALs(l:wlals, l:l, "algn", "+", "s:zipAlgn")
     elseif l:l[0] == "|"
-      let l:elems = split(l:l, "|")
-      let l:llens = map(l:elems, 'strwidth(substitute(v:val, ''\s'', "", "g"))')
-      let l:mlens = s:zip2ExtListsWith({x, y -> max([x, y])}, l:mlens, l:llens, {_ -> 0})
+      let l:wlals = s:updateWLALs(l:wlals, l:l, "wlen", "|", "s:zipWLen")
     else
       break
     endif
@@ -75,8 +81,7 @@ function! s:maxWordLengths(tableHeadLineNum) abort
     let l:i = l:i + 1
   endwhile
 
-  echo map(deepcopy(l:algns),'v:val["algn"]')
-  return l:mlens
+  return l:wlals
 endfunction
 
 function! s:defaultStr(str, def) abort
@@ -84,24 +89,36 @@ function! s:defaultStr(str, def) abort
   return l:str
 endfunction
 
-function! s:format(l, sep, mlens, f) abort
+function! s:format(l, sep, wlals, f) abort
   let l:strs = split(a:l, a:sep)
-  let l:strs = s:zip2ExtListsWith(a:f, l:strs, a:mlens, {_ -> ""})
+  let l:strs = s:extend(l:strs, a:wlals, {_ -> ""})
+  let l:strs = s:zip2ListsWith(a:f, l:strs, a:wlals)
   return a:sep . join(l:strs, a:sep) . a:sep
 endfunction
 
-function! s:formatBarLength(bc, b, n) abort
+function! s:formatBarLength(bc, b, wlal) abort
   let l:l = s:defaultStr(a:b[0], a:bc)
   let l:r = s:defaultStr(a:b[len(a:b) - 1], a:bc)
-  return l:l . repeat(a:bc, a:n) . l:r
+  return l:l . repeat(a:bc, a:wlal["wlen"]) . l:r
 endfunction
 
-function! s:formatWordLength(w, n) abort
-  let l:str = substitute(a:w, '\s', "", "g")
-  return " " . l:str . repeat(" ", a:n - strwidth(l:str)) . " "
+function! s:formatWordLength(w, wlal) abort
+  let l:str  = s:delSpacesBA(a:w)
+  let l:diff = a:wlal["wlen"] - strwidth(l:str)
+
+  if     a:wlal["algn"] == 2
+    let l:str = repeat(" ", l:diff) . l:str
+  elseif a:wlal["algn"] == 3
+    let l:half = l:diff / 2
+    let l:str  = repeat(" ", l:diff - l:half) . l:str . repeat(" ", l:half)
+  else
+    let l:str = l:str . repeat(" ", l:diff)
+  endif
+
+  return " " . l:str . " "
 endfunction
 
-function! s:formatPandocMDTable(tableHeadLineNum, mlens) abort
+function! s:formatPandocMDTable(tableHeadLineNum, wlals) abort
   let l:lastLineNum      = line("$")
   let l:i                = a:tableHeadLineNum
   while l:i <= l:lastLineNum
@@ -109,9 +126,9 @@ function! s:formatPandocMDTable(tableHeadLineNum, mlens) abort
 
     if     l:l[0] == "+"
       let l:bc   = s:defaultStr(l:l[2], "-")
-      call setline(l:i, s:format(l:l, "+", a:mlens, function("s:formatBarLength",[l:bc])))
+      call setline(l:i, s:format(l:l, "+", a:wlals, function("s:formatBarLength",[l:bc])))
     elseif l:l[0] == "|"
-      call setline(l:i, s:format(l:l, "|", a:mlens, function("s:formatWordLength")))
+      call setline(l:i, s:format(l:l, "|", a:wlals, function("s:formatWordLength")))
     else
       break
     endif
@@ -132,8 +149,8 @@ function! pdmdtableformatter#FormatThisPandocMDTable() abort
     echo "no table here"
   else
     let l:tableHeadLineNum = l:tableHeadLineNum + 1
-    let l:mlens            = s:maxWordLengths(l:tableHeadLineNum)
-    let l:tableLastLineNum = s:formatPandocMDTable(l:tableHeadLineNum, l:mlens)
+    let l:wlals            = s:wordLengthsAndAligns(l:tableHeadLineNum)
+    let l:tableLastLineNum = s:formatPandocMDTable(l:tableHeadLineNum, l:wlals)
     echo "formatted line [" . l:tableHeadLineNum . "-" . l:tableLastLineNum . "]"
   endif
 endfunction
