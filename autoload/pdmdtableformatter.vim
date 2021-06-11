@@ -16,10 +16,23 @@ function! s:zip2ListsWith(f, l1, l2) abort
 endfunction
 
 function! s:extend(l1, l2, e) abort
-  return a:l1 + repeat([a:e], len(a:l2) - len(a:l1))
+  let l:r = a:l1
+  let l:i = 0
+  while l:i < len(a:l2) - len(a:l1)
+    let l:r = l:r + [a:e(l:i)]
+    let l:i = l:i + 1
+  endwhile
+  return l:r
+  " return a:l1 + repeat([a:e], len(a:l2) - len(a:l1))
 endfunction
 
-function! s:zipAlgn(algn, bar)
+function! s:zip2ExtListsWith(f, l1, l2, e) abort
+  return s:zip2ListsWith(a:f, s:extend(a:l1, a:l2, a:e), a:l2)
+endfunction
+
+let s:wlal0 = { "wlen" : 0, "algn" : 0 }
+
+function! s:zipAlgn(bar, algn) abort
   let l:algn = a:algn
   if l:algn == 0
     if a:bar[0] == ":"
@@ -30,6 +43,12 @@ function! s:zipAlgn(algn, bar)
     endif
   endif
   return l:algn
+endfunction
+
+function! s:mapDict(dict, key, f) abort
+  let l:dict = a:dict
+  let l:dict[a:key] = a:f(l:dict[a:key])
+  return l:dict
 endfunction
 
 function! s:maxWordLengths(tableHeadLineNum) abort
@@ -43,13 +62,12 @@ function! s:maxWordLengths(tableHeadLineNum) abort
 
     if     l:l[0] == "+"
       let l:bars  = split(l:l, "+")
-      let l:algns = s:extend(l:algns, l:bars, 0)
-      let l:algns = s:zip2ListsWith(function("s:zipAlgn"), l:algns, l:bars)
+      let s:zippr = {wlal, bar -> s:mapDict(wlal, "algn", function("s:zipAlgn",[bar]))}
+      let l:algns = s:zip2ExtListsWith(s:zippr, l:algns, l:bars, {_ -> copy(s:wlal0)})
     elseif l:l[0] == "|"
       let l:elems = split(l:l, "|")
       let l:llens = map(l:elems, 'strwidth(substitute(v:val, ''\s'', "", "g"))')
-      let l:mlens = s:extend(l:mlens, l:llens, 0)
-      let l:mlens = s:zip2ListsWith({x, y -> max([x, y])}, l:mlens, l:llens)
+      let l:mlens = s:zip2ExtListsWith({x, y -> max([x, y])}, l:mlens, l:llens, {_ -> 0})
     else
       break
     endif
@@ -57,7 +75,7 @@ function! s:maxWordLengths(tableHeadLineNum) abort
     let l:i = l:i + 1
   endwhile
 
-  echo l:algn
+  echo map(deepcopy(l:algns),'v:val["algn"]')
   return l:mlens
 endfunction
 
@@ -68,18 +86,17 @@ endfunction
 
 function! s:format(l, sep, mlens, f) abort
   let l:strs = split(a:l, a:sep)
-  let l:strs = s:extend(l:strs, a:mlens, "")
-  let l:strs = s:zip2ListsWith(a:f, a:mlens, l:strs)
+  let l:strs = s:zip2ExtListsWith(a:f, l:strs, a:mlens, {_ -> ""})
   return a:sep . join(l:strs, a:sep) . a:sep
 endfunction
 
-function! s:formatBarLength(bc, n, b) abort
+function! s:formatBarLength(bc, b, n) abort
   let l:l = s:defaultStr(a:b[0], a:bc)
   let l:r = s:defaultStr(a:b[len(a:b) - 1], a:bc)
   return l:l . repeat(a:bc, a:n) . l:r
 endfunction
 
-function! s:formatWordLength(n, w) abort
+function! s:formatWordLength(w, n) abort
   let l:str = substitute(a:w, '\s', "", "g")
   return " " . l:str . repeat(" ", a:n - strwidth(l:str)) . " "
 endfunction
