@@ -1,21 +1,18 @@
 function! s:zip2ListsWith(f, l1, l2) abort
   if len(a:l1) <= len(a:l2)
-    let l:shorter = a:l1
-    let l:longer  = deepcopy(a:l2)
+    let l:minSize = len(a:l1)
   else
-    let l:shorter = a:l2
-    let l:longer  = deepcopy(a:l1)
+    let l:minSize = len(a:l2)
   endif
 
-  let l:shorterlen = len(l:shorter)
-  let l:i = 0
-
-  while l:i < l:shorterlen
-    let l:longer[l:i] = a:f(a:l1[l:i], a:l2[l:i])
-    let l:i = l:i + 1
+  let l:res = []
+  let l:i   = 0
+  while l:i < l:minSize
+    let l:res = l:res + [a:f(a:l1[l:i], a:l2[l:i])]
+    let l:i   = l:i   + 1
   endwhile
 
-  return l:longer
+  return l:res
 endfunction
 
 function! s:extend(l1, l2, e) abort
