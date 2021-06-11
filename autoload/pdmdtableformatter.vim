@@ -54,7 +54,7 @@ endfunction
 
 let s:wlal0 = { "wlen" : 0, "algn" : 0 }
 
-function! s:updateWLALs(wlals, line, key, sep, fname)
+function! s:updateWLALs(wlals, line, key, sep, fname) abort
   let l:strs  = split(a:line, a:sep)
   let l:strs  = s:extend(l:strs, a:wlals, {_ -> ""           })
   let l:wlals = s:extend(a:wlals, l:strs, {_ -> copy(s:wlal0)})
