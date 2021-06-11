@@ -118,17 +118,30 @@ function! s:formatWordLength(w, wlal) abort
   return " " . l:str . " "
 endfunction
 
+function s:setFormat(lnum, line, sep, wlals, f) abort
+  let l:formatted = s:format(a:line, a:sep, a:wlals, a:f)
+  if l:formatted != a:line
+    call setline(a:lnum, l:formatted)
+    return 1
+  else
+    return 0
+  endif
+endfunction
+
 function! s:formatPandocMDTable(tableHeadLineNum, wlals) abort
   let l:lastLineNum      = line("$")
+  let l:changed          = 0
   let l:i                = a:tableHeadLineNum
   while l:i <= l:lastLineNum
     let l:l = getline(l:i)
 
     if     l:l[0] == "+"
-      let l:bc   = s:defaultStr(l:l[2], "-")
-      call setline(l:i, s:format(l:l, "+", a:wlals, function("s:formatBarLength",[l:bc])))
+      let l:bc      = s:defaultStr(l:l[2], "-")
+      let s:f       = function("s:formatBarLength",[l:bc])
+      let l:changed = or(changed, s:setFormat(l:i, l:l, "+", a:wlals, s:f))
     elseif l:l[0] == "|"
-      call setline(l:i, s:format(l:l, "|", a:wlals, function("s:formatWordLength")))
+      let s:f       = function("s:formatWordLength")
+      let l:changed = or(changed, s:setFormat(l:i, l:l, "|", a:wlals, s:f))
     else
       break
     endif
@@ -136,7 +149,7 @@ function! s:formatPandocMDTable(tableHeadLineNum, wlals) abort
     let l:i = l:i + 1
   endwhile
 
-  return l:i - 1
+  return { "tableLastLineNum" : l:i - 1, "changed" : l:changed }
 endfunction
 
 function! pdmdtableformatter#FormatThisPandocMDTable() abort
@@ -150,7 +163,12 @@ function! pdmdtableformatter#FormatThisPandocMDTable() abort
   else
     let l:tableHeadLineNum = l:tableHeadLineNum + 1
     let l:wlals            = s:wordLengthsAndAligns(l:tableHeadLineNum)
-    let l:tableLastLineNum = s:formatPandocMDTable(l:tableHeadLineNum, l:wlals)
-    echo "formatted line [" . l:tableHeadLineNum . "-" . l:tableLastLineNum . "]"
+    let l:res              = s:formatPandocMDTable(l:tableHeadLineNum, l:wlals)
+    let l:lines            = l:tableHeadLineNum . "-" . l:res["tableLastLineNum"]
+    if l:res["changed"]
+      echo "grid table formatted (lines: " . l:lines . ")"
+    else
+      echo "nothing changed (lines: " . l:lines . ")"
+    endif
   endif
 endfunction
